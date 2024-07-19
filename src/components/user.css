@@ -1,0 +1,38 @@
+.game-details {
+    display: flex;
+  }
+  
+  .column:not(:last-child) {
+    /* margin-right: 20px; */
+    border-right: 1px solid #fff;
+  }
+
+  .column:first-child {
+    /* margin-right: 20px; */
+    border-bottom-left-radius: 8px;
+    border-top-left-radius: 8px;
+  }
+
+  .column:last-child {
+    /* margin-right: 20px; */
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+  
+  .header, .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .header {
+    font-weight: bold;
+    border-bottom: 1px solid #ffffff;
+    padding: 4px 20px;
+
+  }
+  
+  .row {
+    padding: 4px 20px;
+  }
+
+ 
