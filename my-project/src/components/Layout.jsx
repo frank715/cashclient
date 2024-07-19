@@ -8,9 +8,9 @@ export const Layout = ({children}) => {
         <div>
            <Outlet />
         </div>
-        <div>
+        {/* <div>
             <Footer />
-        </div>
+        </div> */}
     </div>
   )
 }
