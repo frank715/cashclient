@@ -1,4 +1,3 @@
-'use client'
 import React, { useState, useEffect, useMemo } from 'react'
 // import mainBackground from '../public/assets/images/hero-bg.png';
 import mainBackground from '../assets/images/hero-bg.png';
@@ -27,10 +26,16 @@ const Dashboard = () => {
   const columnsPerPage = 4; // Number of columns
 
  
+  const today = moment().format('YYYY-MM-DD');
   const [selectedGame, setSelectedGame] = useState({});
   const defGame = {label: gameState?.gameName, value: gameState?._id}
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(today);
   const [beforeDay, setBeforeDay] = useState(false);
+
+const gameDates = Object.keys(gameState?.dates || {}) || [];
+
+
+
 
   const fetchGames = async () => {
     try {
@@ -40,6 +45,14 @@ const Dashboard = () => {
             setGamesList(data.games);
             dispatch({type: GAMES_LIST, payload: data.games})
             dispatch({type:GAME, payload: data.games?.[0]})
+            setGameState(data.games?.[0])
+            
+              setSelectedGame({value:data.games?.[0]?._id, label: data.games?.[0]?.gameName});
+              // setSelectedDate(today);
+              // setGameState(data.games?.[0]);
+              const gameDates = Object.keys(data.games?.[0].dates || {}) || [];
+              setnewColumns(today,gameDates, data.games,data.games?.[0] ) 
+          
         }
     } catch (error) {
         console.error(error)
@@ -58,28 +71,20 @@ useEffect(() => {
 },[]);
 
 
-const today = moment().format('YYYY-MM-DD');
-
-const gameDates = Object.keys(gameState?.dates || {});
 
 // const selectedGameDate = gameDates.includes(today) ? today : gameDates.sort((a, b) => new Date(b) - new Date(a))[0];
-const selectedGameDate = today;
 
-useEffect(() => {
-    setSelectedGame({value:games?.[0]?._id, label: games?.[0]?.gameName});
-    setSelectedDate(selectedGameDate);
-    setGameState(game);
-},[games])
 
-  useEffect(() => {
-      if(gameDates.includes(selectedDate)){
-        //   console.log(gameDates, 'selectedDate--------------')
-          return;
-    }else{
+
+const setnewColumns = (selectedDate,gameDates, games, gameState) => {
+
+    
+      if(selectedDate && gameDates.length > 0  && games.length > 0 && !gameDates.includes(selectedDate)){
+
         // console.log(gameDates, 'selectedDate++++++++++++++++++++++++++++')
       let updatedGames = [...games];
       let gameIndexObj = updatedGames.map((item, index) => ({item, index})).filter(({item}) => item?._id === gameState?._id);
-      console.log(gameState, 'gameIndexObj++++++++++++++++++++++++++++')
+      // console.log(gameState, 'gameIndexObj++++++++++++++++++++++++++++')
       if (gameIndexObj.length ===  0) return;
       let gameIndex = gameIndexObj[0].index;
 
@@ -109,32 +114,35 @@ useEffect(() => {
       // Add today's date with the generated time slots to the dates object
       // console.log(updatedGames, 'updatedGamesData')
       // dispatch({type:GAMES_LIST, payload: updatedGames});
-      dispatch({type:GAME, payload: updatedGames[gameIndex]});
+      // dispatch({type:GAME, payload: updatedGames[gameIndex]});
     }
-  },[ game,selectedGame, selectedDate])
+  }
 
 
   const [columns, setColumns] = useState([]);
 
   useEffect(() => {
 
-    const details =  gameState?.dates?.[selectedDate];
+    if (selectedDate) {
+      
+      const details =  gameState?.dates?.[selectedDate];
+    
+      // console.log( details, 'detials', games, 'date', selectedGameDate);
+    
+      const entries = details &&  Object.entries(details);
+      const rowsPerColumn = 12;
+    
+      let updateColumns = []
+      for (let i = 0; i < entries?.length; i += rowsPerColumn) {
+        updateColumns.push(entries.slice(i, i + rowsPerColumn));
+      }
   
-    console.log( details, 'detials', games, 'date', selectedGameDate);
-  
-    const entries = details &&  Object.entries(details);
-    const rowsPerColumn = 12;
-  
-    let updateColumns = []
-    for (let i = 0; i < entries?.length; i += rowsPerColumn) {
-      updateColumns.push(entries.slice(i, i + rowsPerColumn));
+      setColumns(updateColumns)
     }
 
-    setColumns(updateColumns)
+  }, [game,selectedDate, gameState])
 
-  }, [game,selectedDate, selectedGame])
-
-
+console.log('gamestate', gameState)
 
 
 
@@ -155,6 +163,7 @@ useEffect(() => {
       setBeforeDay(beforeday)
       setSelectedDate(dateselected);
       // Handle any other actions on date change if needed
+      setnewColumns(dateselected,gameDates, gamesList, gameState ) 
     };
   
   const handleGameChange = (e) => {
@@ -168,7 +177,9 @@ useEffect(() => {
       setSelectedDate(selectedGameDate);
       setGameState(...newGame);
       setBeforeDay(false)
-      // dispatch({type: GAME, payload: newGame})
+      dispatch({type: GAME, payload: newGame})
+      setnewColumns(today,gameDates, gamesList,gameState ) 
+      // setnewColumns(today,gameDates, data.games,data.games?.[0] ) 
   };
 
   const handleSearchSelect = () => {
@@ -214,7 +225,60 @@ useEffect(() => {
 
   const handleSaveBulkUpdate = async() => {
     try {
+      function generateMockData(startDate, endDate, interval, startTime, endTime) {
+        const mockData = {
+            dates: {}
+        };
+    
+        let start = moment(startDate);
+        const end = moment(endDate);
+    
+        // Loop through each day between start and end date
+        while (start.isBefore(end) || start.isSame(end)) {
+            const dateKey = start.format('YYYY-MM-DD');
+            mockData.dates[dateKey] = {};
+    
+            // Define start and end time for the day
+            const startOfDay = moment(start).set({
+                hour: startTime.split(':')[0],
+                minute: startTime.split(':')[1]
+            });
+            const endOfDay = moment(start).set({
+                hour: endTime.split(':')[0],
+                minute: endTime.split(':')[1]
+            });
+    
+            // Check if interval is 0
+            if (interval === 0) {
+                const timeKey = startOfDay.format('HH:mm');
+                mockData.dates[dateKey][timeKey] = Math.floor(Math.random() * 1000); // Random 2-3 digit number
+            } else {
+                // Generate timestamps within the specified time range
+                for (let current = startOfDay.clone(); current.isBefore(endOfDay); current.add(interval, 'minutes')) {
+                    const timeKey = current.format('HH:mm');
+                    mockData.dates[dateKey][timeKey] = Math.floor(Math.random() * 1000); // Random 2-3 digit number
+                }
+            }
+    
+            // Move to the next day
+            start.add(1, 'days');
+        }
+    
+        return mockData;
+    }
+    
+    // Example usage
+    const startDate = '2024-07-01';
+    const endDate = '2024-07-19';
+    const interval = 15; // Set interval to 0 to only include start time
+    const startTime = '00:00'; // Start of the day
+    const endTime = '24:00';   // End of the day
+    
+    const result = generateMockData(startDate, endDate, interval, startTime, endTime);
+    // console.log(JSON.stringify(result, null, 2));
 
+
+      // let gameToUpdate = {_id:gameState?._id, dates: {...result.dates}, selectedDate: selectedDate};
       let gameToUpdate = {_id:gameState?._id, dates: gameState.dates, selectedDate: selectedDate};
       
 
